@@ -102,7 +102,6 @@
     "l.Read";
 			this.Tabs.Add(this.tab1);
 			this.Tabs.Add(this.JobEmails);
-			this.Load += new Microsoft.Office.Tools.Ribbon.RibbonUIEventHandler(this.Ribbon1_Load);
 			this.tab1.ResumeLayout(false);
 			this.tab1.PerformLayout();
 			this.JobEmails.ResumeLayout(false);

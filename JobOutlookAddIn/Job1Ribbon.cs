@@ -8,13 +8,6 @@ namespace JobOutlookAddIn
 {
 	public partial class Job1Ribbon
 	{
-		private void Ribbon1_Load( object sender, RibbonUIEventArgs e )
-		{
-
-		}
-
-
-
 		private void buttonReset_Click( object sender, RibbonControlEventArgs e )
 		{
 			Globals.ThisAddIn.Reset();
