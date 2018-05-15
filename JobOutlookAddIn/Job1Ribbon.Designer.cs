@@ -37,11 +37,11 @@
 			this.tab1 = this.Factory.CreateRibbonTab();
 			this.JobEmails = this.Factory.CreateRibbonTab();
 			this.group1 = this.Factory.CreateRibbonGroup();
-			this.buttonReset = this.Factory.CreateRibbonButton();
-			this.buttonConditionalEmail = this.Factory.CreateRibbonButton();
 			this.buttonForceEmail = this.Factory.CreateRibbonButton();
-			this.separator1 = this.Factory.CreateRibbonSeparator();
 			this.separator2 = this.Factory.CreateRibbonSeparator();
+			this.buttonConditionalEmail = this.Factory.CreateRibbonButton();
+			this.separator1 = this.Factory.CreateRibbonSeparator();
+			this.buttonReset = this.Factory.CreateRibbonButton();
 			this.tab1.SuspendLayout();
 			this.JobEmails.SuspendLayout();
 			this.group1.SuspendLayout();
@@ -69,31 +69,31 @@
 			this.group1.Label = "Jobs Email Group";
 			this.group1.Name = "group1";
 			// 
-			// buttonReset
+			// buttonForceEmail
 			// 
-			this.buttonReset.Label = "Reset";
-			this.buttonReset.Name = "buttonReset";
-			this.buttonReset.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.buttonReset_Click);
+			this.buttonForceEmail.Label = "Force Send";
+			this.buttonForceEmail.Name = "buttonForceEmail";
+			this.buttonForceEmail.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.buttonForceEmail_Click);
+			// 
+			// separator2
+			// 
+			this.separator2.Name = "separator2";
 			// 
 			// buttonConditionalEmail
 			// 
-			this.buttonConditionalEmail.Label = "Conditional Email";
+			this.buttonConditionalEmail.Label = "Conditional Send";
 			this.buttonConditionalEmail.Name = "buttonConditionalEmail";
 			this.buttonConditionalEmail.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.buttonConditionalEmail_Click);
-			// 
-			// buttonForceEmail
-			// 
-			this.buttonForceEmail.Label = "Force Email";
-			this.buttonForceEmail.Name = "buttonForceEmail";
-			this.buttonForceEmail.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.buttonForceEmail_Click);
 			// 
 			// separator1
 			// 
 			this.separator1.Name = "separator1";
 			// 
-			// separator2
+			// buttonReset
 			// 
-			this.separator2.Name = "separator2";
+			this.buttonReset.Label = "Reset";
+			this.buttonReset.Name = "buttonReset";
+			this.buttonReset.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.buttonReset_Click);
 			// 
 			// Job1Ribbon
 			// 
