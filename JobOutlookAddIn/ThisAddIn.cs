@@ -5,6 +5,8 @@ using Outlook = Microsoft.Office.Interop.Outlook;
 using System.Windows.Forms;
 using Utilities;
 using HtmlAgilityPack;
+using System.Runtime.Serialization;
+using System.Net;
 
 namespace JobOutlookAddIn
 {
@@ -17,6 +19,9 @@ namespace JobOutlookAddIn
 		IList<Entity> cities;
 		JobEmailResponce jobEmailResponce = null;
 
+		//private IList<string> wrongTitlesList = null;
+
+
 		private void ThisAddIn_Startup( object sender, System.EventArgs e )
 		{
 			inspectors = this.Application.Inspectors;
@@ -24,7 +29,41 @@ namespace JobOutlookAddIn
 
 			currentExplorer = this.Application.ActiveExplorer();
 			currentExplorer.SelectionChange += CurrentExplorer_SelectionChange;
-
+			/*
+			wrongTitlesList = new List<string>();
+			wrongTitlesList.Add( "sales" );
+			wrongTitlesList.Add( "hr " );
+			wrongTitlesList.Add( "assistant" );
+			wrongTitlesList.Add( "art" );
+			wrongTitlesList.Add( "regional" );
+			wrongTitlesList.Add( "marketing" );
+			wrongTitlesList.Add( "culinary" );
+			wrongTitlesList.Add( "investment" );
+			wrongTitlesList.Add( "community" );
+			wrongTitlesList.Add( "music" );
+			wrongTitlesList.Add( "consulting" );
+			wrongTitlesList.Add( "store" );
+			wrongTitlesList.Add( "clinical" );
+			wrongTitlesList.Add( "business" );
+			wrongTitlesList.Add( "finance" );
+			wrongTitlesList.Add( "director of development" );
+			wrongTitlesList.Add( "operations" );
+			wrongTitlesList.Add( "engagement" );
+			wrongTitlesList.Add( "coordinator" );
+			wrongTitlesList.Add( "sourcing" );
+			wrongTitlesList.Add( "camp " );
+			wrongTitlesList.Add( "administrative" );
+			wrongTitlesList.Add( "government" );
+			wrongTitlesList.Add( "controller" );
+			wrongTitlesList.Add( "medical" );
+			wrongTitlesList.Add( "program" );
+			wrongTitlesList.Add( "spa " );
+			wrongTitlesList.Add( "legal  " );
+			wrongTitlesList.Add( "of development" );
+			wrongTitlesList.Add( "training " );
+			wrongTitlesList.Add( "regulatory " );
+			wrongTitlesList.Add( "training " );
+			*/
 			ProcessTextfiles();
 			//
 		}
@@ -161,21 +200,25 @@ namespace JobOutlookAddIn
 		private void ProcessEmail( Outlook.MailItem mailItem )
 		{
 			string htmlBody = mailItem.HTMLBody;
-			var result = ProcessBody( htmlBody );
-			if( result != null )
+
+			try
 			{
-				mailItem.HTMLBody = result;
-				/*
-				try
-				{
-					jobEmailResponce.ImmediateReply( ref mailItem );
-				}
-				catch( Exception ex )
-				{
-					MessageBox.Show( ex.Message );
-				}
-				*/
+				var result = ProcessBody( htmlBody );
+				if( result != null )
+					mailItem.HTMLBody = result;
+
+
 			}
+			catch( NoActiveJobsException ex )
+			{
+				mailItem.Delete();
+				//
+			}
+			catch( Exception ex )
+			{
+				//
+			}
+			//
 			//
 		}
 
@@ -304,12 +347,14 @@ again:
 						{
 							if( ( entity.Attrib == 2 ) && ( link.InnerText.Contains( entity.Item ) ) )
 							{
+								if( IsIrrelevant( link.InnerText.ToLower() ) )
+									continue;
+
+								bool previouslySubmitted = PreviouslySubmitted( link );
+
 								jobCounter++;
-								//System.Diagnostics.Debug.WriteLine( entity.Item );
 								if( spanStillActive != null )
 								{
-									//System.Diagnostics.Debug.WriteLine( link.LinePosition );
-
 									if( link.LinePosition < spanStillActive.LinePosition )
 										aboveFreshJobs++;
 									else if( link.LinePosition > spanStillActive.LinePosition )
@@ -317,7 +362,17 @@ again:
 									//
 								}
 
-								link.InnerHtml = link.InnerHtml.Replace( entity.Item, string.Format( "<font color='#521987'>{0}</font>", entity.Item ) );
+								//#521987 = purple
+								//#fffdaf = light yellow   </strike>
+								if( previouslySubmitted )
+									link.InnerHtml = link.InnerHtml.Replace( entity.Item, string.Format( "<span style='background-color:#fffdaf; color:purple'><strike><font size='5' >{0}</font></strike></span>", entity.Item ) );
+								else
+									link.InnerHtml = link.InnerHtml.Replace( entity.Item, string.Format( "<span style='background-color:#fffdaf; color:purple'><font size='5' >{0}</font></span>", entity.Item ) );
+
+								//link.InnerHtml.Replace( link.InnerText, string.Format( "<h2 style='background-color:#fffdaf; color:#521987;'>{0}</h2>", link.InnerText ) );
+								//link.InnerHtml.Replace( link.InnerText, string.Format( "<span style='background-color:red'><font color='green'>{0}</font></span>", link.InnerText ) );
+								//link.InnerHtml.Replace( entity.Item, string.Format( "<span style='background-color:#fffdaf'><font color='blue'>{0}</font></span>", entity.Item ) );
+								//link.InnerHtml.Replace( entity.Item, string.Format( "<font size='5' color='green'>{0}</font>", entity.Item ) );
 								try
 								{
 									string pat = @"(\d+) ([a-zA-Z]+) ago";
@@ -341,7 +396,7 @@ again:
 												else if( timePeriod.Contains( "day" ) )
 												{
 													//timeAgo = timeAgo;
-												}													
+												}
 												else if( timePeriod.Contains( "hour" ) )
 													timeAgo = 1;
 												else if( timePeriod.Contains( "second" ) )
@@ -375,6 +430,11 @@ again:
 			//
 			//goto again;
 
+			if( ( spanStillActive != null ) && ( aboveFreshJobs == 0 ) )
+				throw new NoActiveJobsException();
+
+
+
 			//if( spanFreshJobs != null )
 			//	spanFreshJobs.InnerHtml = aboveFreshJobs + " Fresh Jobs";
 			if( spanFreshJobs != null )
@@ -382,10 +442,72 @@ again:
 
 			if( spanStillActive != null )
 				spanStillActive.InnerHtml = "<span style='font - size:14px;color:red;font-family:Arial, sans-serif;'>" + belowStillActive + " Still Active </span>";
-				//spanStillActive.InnerHtml = belowStillActive + " Still Active";
+			//spanStillActive.InnerHtml = belowStillActive + " Still Active";
 
 
 			return doc.DocumentNode.InnerHtml + string.Format( "<font size='1' color='red'><div id='gslprocesed' > Processed on: {0} Found {1}</div><font>", System.DateTime.Now.ToShortDateString(), jobCounter );
+			//
+		}
+
+		WebClient webClient = new WebClient();
+		private bool PreviouslySubmitted( HtmlNode link )
+		{
+again:
+
+			string url = link.GetAttributeValue( "href", string.Empty );
+			if( String.IsNullOrEmpty( url ) )
+				return false;
+
+			url = url.Split( '?' )[0];
+
+			var getSubmittedJobsUrl = "http://localhost:56491/api/GetSubmittedJob?url=" + url;
+
+			using( WebClient wc = new WebClient() )
+			{
+				var json = wc.DownloadString( getSubmittedJobsUrl );
+zzz:
+				try
+				{
+					JobResult output = (JobResult)Newtonsoft.Json.JsonConvert.DeserializeObject<JobResult>( json );
+					if( output.statusCode == 404 )
+						return false;
+
+					return true;
+
+				}
+				catch( Exception ex )
+				{
+					//throw ex;
+				}
+				//
+
+				//goto zzz;
+			}
+
+			//goto again;
+
+			return true;
+			//
+		}
+
+
+		public class JobResult
+		{
+			public int statusCode { get; set; }
+			public string message { get; set; }
+		}
+
+
+		private bool IsIrrelevant( string text )
+		{
+			foreach( Entity entity in this.roles )
+			{
+				//System.Diagnostics.Debug.WriteLine( "{0} {1} {2}", text, entity.Item, ( text.Contains( entity.Item ) ) );
+				if( ( entity.Attrib == 4 ) && ( text.Contains( entity.Item ) ) )
+					return true;
+			}
+
+			return false;
 			//
 		}
 
@@ -473,6 +595,26 @@ again:
 		{
 			this.Startup += new System.EventHandler( ThisAddIn_Startup );
 			this.Shutdown += new System.EventHandler( ThisAddIn_Shutdown );
+		}
+
+		[Serializable]
+		private class NoActiveJobsException : Exception
+		{
+			public NoActiveJobsException()
+			{
+			}
+
+			public NoActiveJobsException( string message ) : base( message )
+			{
+			}
+
+			public NoActiveJobsException( string message, Exception innerException ) : base( message, innerException )
+			{
+			}
+
+			protected NoActiveJobsException( SerializationInfo info, StreamingContext context ) : base( info, context )
+			{
+			}
 		}
 
 		#endregion
