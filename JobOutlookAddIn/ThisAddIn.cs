@@ -4,14 +4,18 @@ using System.Linq;
 using Outlook = Microsoft.Office.Interop.Outlook;
 using System.Windows.Forms;
 using Utilities;
-using HtmlAgilityPack;
 using System.Runtime.Serialization;
 using System.Net;
+using Newtonsoft.Json;
+using HtmlAgilityPack;
 
 namespace JobOutlookAddIn
 {
 	public partial class ThisAddIn
 	{
+		WebClient webClient = new WebClient();
+		private Outlook.NameSpace outlookNameSpace;
+
 		Outlook.Inspectors inspectors;
 		Outlook.Explorer currentExplorer = null;
 
@@ -19,7 +23,7 @@ namespace JobOutlookAddIn
 		IList<Entity> cities;
 		JobEmailResponce jobEmailResponce = null;
 
-		//private IList<string> wrongTitlesList = null;
+		//reservationsspecialtennis@gmail.com
 
 
 		private void ThisAddIn_Startup( object sender, System.EventArgs e )
@@ -29,44 +33,143 @@ namespace JobOutlookAddIn
 
 			currentExplorer = this.Application.ActiveExplorer();
 			currentExplorer.SelectionChange += CurrentExplorer_SelectionChange;
+
+			outlookNameSpace = this.Application.GetNamespace( "MAPI" );
 			/*
-			wrongTitlesList = new List<string>();
-			wrongTitlesList.Add( "sales" );
-			wrongTitlesList.Add( "hr " );
-			wrongTitlesList.Add( "assistant" );
-			wrongTitlesList.Add( "art" );
-			wrongTitlesList.Add( "regional" );
-			wrongTitlesList.Add( "marketing" );
-			wrongTitlesList.Add( "culinary" );
-			wrongTitlesList.Add( "investment" );
-			wrongTitlesList.Add( "community" );
-			wrongTitlesList.Add( "music" );
-			wrongTitlesList.Add( "consulting" );
-			wrongTitlesList.Add( "store" );
-			wrongTitlesList.Add( "clinical" );
-			wrongTitlesList.Add( "business" );
-			wrongTitlesList.Add( "finance" );
-			wrongTitlesList.Add( "director of development" );
-			wrongTitlesList.Add( "operations" );
-			wrongTitlesList.Add( "engagement" );
-			wrongTitlesList.Add( "coordinator" );
-			wrongTitlesList.Add( "sourcing" );
-			wrongTitlesList.Add( "camp " );
-			wrongTitlesList.Add( "administrative" );
-			wrongTitlesList.Add( "government" );
-			wrongTitlesList.Add( "controller" );
-			wrongTitlesList.Add( "medical" );
-			wrongTitlesList.Add( "program" );
-			wrongTitlesList.Add( "spa " );
-			wrongTitlesList.Add( "legal  " );
-			wrongTitlesList.Add( "of development" );
-			wrongTitlesList.Add( "training " );
-			wrongTitlesList.Add( "regulatory " );
-			wrongTitlesList.Add( "training " );
+			Outlook.MAPIFolder inbox = outlookNameSpace.GetDefaultFolder( Outlook.OlDefaultFolders.olFolderInbox );
+			inbox.Items.ItemAdd += new Outlook.ItemsEvents_ItemAddEventHandler( items_ItemAdd );
+			//outlookNameSpace.
 			*/
+			Application.NewMailEx += Application_NewMailEx;
+
 			ProcessTextfiles();
 			//
 		}
+
+		private void Application_NewMailEx( string entryIDCollection )
+		{
+			try
+			{
+				dynamic newITem = outlookNameSpace.GetItemFromID( entryIDCollection );
+				Outlook.MailItem mailItem = (Outlook.MailItem)newITem;
+				if( mailItem != null )
+				{
+					ProcessNewMail( mailItem );
+				}
+				//
+			}
+			catch( Exception ex )
+			{
+				//throw ex;
+			}
+			//
+			return;
+			//
+		}
+
+		private Outlook.Items GetAppointmentsInRange( DateTime startTime, DateTime endTime )
+		{
+			Outlook.Folder calFolder = Application.Session.GetDefaultFolder( Outlook.OlDefaultFolders.olFolderCalendar ) as Outlook.Folder;
+
+			string filter = "[Start] >= '"
+				+ startTime.ToString( "g" )
+				+ "' AND [End] < '"
+				+ endTime.ToString( "g" ) + "'";
+			//Console.WriteLine( filter );
+
+			try
+			{
+				Outlook.Items calItems = calFolder.Items;
+				Outlook.Items restrictItems = calItems.Restrict( filter );
+				restrictItems = restrictItems.Restrict( "[BayClubReservation]='BayClubReservation'" );
+				if( restrictItems.Count > 0 )
+					return restrictItems;
+				else
+					return null;
+			}
+			catch( Exception ex )
+			{
+				return null;
+			}
+			//
+		}
+
+
+		private void ProcessNewMail( Outlook.MailItem mailItem )
+		{
+			var senderEmailAddress = mailItem.SenderEmailAddress;
+			var htmlBody = mailItem.HTMLBody;
+			htmlBody = System.Net.WebUtility.HtmlDecode( htmlBody );
+
+			if( senderEmailAddress == "reservationsspecialtennis@gmail.com" )
+			{
+				try
+				{
+					//html += "<section id='ReservationResponce' hidden>";
+					HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
+					doc.LoadHtml( htmlBody );
+					HtmlNode node = doc.GetElementbyId( "ReservationResponce" );
+					if( node != null )
+					{
+						string content = node.InnerText;
+						System.Xml.XmlDocument xNode = JsonConvert.DeserializeXmlNode( "{ \"ReservationResponce\":" + content + "}" );
+						GGTSReservations.Services.ReservationResponce reservation = JsonConvert.DeserializeObject<GGTSReservations.Services.ReservationResponce>( content );
+
+						Outlook.Items appts = GetAppointmentsInRange( Convert.ToDateTime( reservation.court_date ), Convert.ToDateTime( reservation.court_date ).AddDays( +1 ) );
+						if( ( appts != null ) && ( appts.Count > 0 ) )
+							return;
+
+
+						Outlook.AppointmentItem newAppointment = (Outlook.AppointmentItem)this.Application.CreateItem( Outlook.OlItemType.olAppointmentItem );
+						newAppointment.Start = Convert.ToDateTime( reservation.court_date + " " + reservation.start_time );
+						newAppointment.End = Convert.ToDateTime( reservation.court_date + " " + reservation.end_time ).AddHours( +1 );
+						newAppointment.ReminderMinutesBeforeStart = 90;
+						if( reservation.court_surface == "Gateway" )
+							newAppointment.Location = "370 Drumm St, San Francisco, CA 94111";
+
+						System.Text.StringBuilder sb = new System.Text.StringBuilder();
+						sb.AppendLine( string.Format( "Your Reservation at {0}, {1}", reservation.court_surface, newAppointment.Location ) );
+						sb.AppendLine( string.Format( "Your Reservation is set for {0} for {1}", newAppointment.Start.ToLongDateString(), reservation.court_name ) );
+						sb.AppendLine();
+						sb.AppendLine();
+						sb.AppendLine( "Players: " );
+						sb.AppendLine( string.Format( "\t{0} {1}", reservation.player_1_first_name, reservation.player_1_name ) );
+						if( reservation.player_2_id != 0 )
+							sb.AppendLine( string.Format( "\t{0} {1}", reservation.player_2_first_name, reservation.player_2_name ) );
+						if( reservation.player_3_id != 0 )
+							sb.AppendLine( string.Format( "\t{0} {1}", reservation.player_3_first_name, reservation.player_3_name ) );
+						if( reservation.player_4_id != 0 )
+							sb.AppendLine( string.Format( "\t{0} {1}", reservation.player_4_first_name, reservation.player_4_name ) );
+
+						sb.AppendLine();
+						sb.AppendLine();
+						sb.AppendLine( string.Format( "Created on: {0}", DateTime.Now.ToString( "MMM ddd d HH:mm yyyy" ) ) );
+
+						newAppointment.Body = sb.ToString();
+
+						newAppointment.Subject = "Auto Tennis appt: Club: " + reservation.court_surface + " on " + reservation.court_name + " at " + newAppointment.Start.ToShortTimeString();
+
+
+						Outlook.ItemProperty MeetingNameProperty = newAppointment.ItemProperties.Add( "BayClubReservation", Outlook.OlUserPropertyType.olText, true );
+						MeetingNameProperty.Value = "BayClubReservation";
+
+						newAppointment.Save();
+						//
+					}
+					/*
+					 {"ball_machine": 1,"booking_time": "2018-07-31 08:23:25","court_blocks": "[\"a_034_09_00_2018-08-02_8\", \"a_034_09_30_2018-08-02_9\"]","court_date": "2018-08-02","court_id": 1043910,"court_length": 1.000000,"court_name": "Tennis 6 Ball Machine","court_number": 34,"court_range_id": 4,"court_sport": "Tennis","court_status": 0,"court_surface": "Gateway","court_uid": "3a2b9004-cbdc-45c7-b7f7-fe32cae12137","end_time": "10:00:00","errormap": {"rule_0": "fail"},"mode": 30,"number_of_players": 1,"online_booking": 1,"player_1_first_name": "George","player_1_id": 158845,"player_1_name": "Lockwood","player_2_first_name": "","player_2_id": 0,"player_2_name": "","player_3_first_name": "","player_3_id": 0,"player_3_name": "","player_4_first_name": "","player_4_id": 0,"player_4_name": "","reservation_type": "Open","result": "OK","start_time": "09:00:00","successmap": {"rule_0": "success","rule_1": "Allowed to view courts","rule_12": "Booking Allowed (Access)","rule_13": "has not exceeded 1.5 hr. Currently have 0.000000 hr.1.000000","rule_16": "No side by side","rule_2": "Booking time reached","rule_3": "Booking in future","rule_5": "No back to back booking","rule_6": "No back to back booking (2nd Player)","rule_9": "Tennis 6 Ball Machine can be booked online"},"view_days": 7}
+					 */
+				}
+				catch( Exception ex )
+				{
+					//throw ex;
+				}
+				//
+			}
+			//
+		}
+
+
 
 		internal void DoIt( object selObject, SendCondition sendCondition )
 		{
@@ -116,22 +219,40 @@ namespace JobOutlookAddIn
 
 		private void ProcessTextfiles()
 		{
-			//string roles;
-			//string cities;
-
+			again:
 			try
 			{
 				string userDir = Environment.GetFolderPath( Environment.SpecialFolder.UserProfile );
 				//C:\Users\Georg\OneDrive\OutlookHelper
 				roles = FileUtilities.ParseFile( userDir + @"\OneDrive\OutlookHelper\Roles.txt" );
 				cities = FileUtilities.ParseFile( userDir + @"\OneDrive\OutlookHelper\Cities.txt" );
-				jobEmailResponce = new JobEmailResponce( userDir + @"\OneDrive\OutlookHelper\outgoingmessage.txt", userDir + @"\OneDrive\Resumes\Current resumev.pdf", roles );
 
+				string resumeFilename = userDir + @"\OneDrive\Resumes\vp.docx";
+				string tempFilename = userDir + @"\OneDrive\Resumes\georgelockwoodresume.docx";
+
+				System.IO.FileAttributes attribute = System.IO.FileAttributes.ReadOnly & System.IO.FileAttributes.Archive;
+
+				System.IO.File.SetAttributes( tempFilename, ~System.IO.FileAttributes.ReadOnly );				
+				System.IO.File.Delete( tempFilename );
+				/*
+				if( !System.IO.File.Exists( tempFilename ) )
+					throw new Exception( string.Format( "the {0} file is missing", resumeFilename ) );
+				*/
+
+				System.IO.File.Copy( resumeFilename, tempFilename, true );
+
+				//System.IO.File.SetAttributes( tempFilename, attribute );
+				//System.IO.File.SetAttributes( tempFilename, attribute );
+
+				//jobEmailResponce = new JobEmailResponce( userDir + @"\OneDrive\OutlookHelper\outgoingmessage.txt", userDir + @"\OneDrive\Resumes\vp.docx", roles );
+				jobEmailResponce = new JobEmailResponce( userDir + @"\OneDrive\OutlookHelper\outgoingmessage.txt", tempFilename, roles );
+				//
 			}
 			catch( Exception x )
 			{
 				MessageBox.Show( x.Message );
 			}
+			//goto again;
 			//
 		}
 
@@ -200,13 +321,14 @@ namespace JobOutlookAddIn
 		private void ProcessEmail( Outlook.MailItem mailItem )
 		{
 			string htmlBody = mailItem.HTMLBody;
-
 			try
 			{
-				var result = ProcessBody( htmlBody );
+				/////////////////////testing? or keep?
+				ProcessNewMail( mailItem ); 
+
+				var result = ProcessBody( mailItem.SenderEmailAddress, htmlBody );
 				if( result != null )
 					mailItem.HTMLBody = result;
-
 
 			}
 			catch( NoActiveJobsException ex )
@@ -222,7 +344,7 @@ namespace JobOutlookAddIn
 			//
 		}
 
-		private string ProcessBody( string htmlBody )
+		private string ProcessBody( string address, string htmlBody )
 		{
 			//return null;
 			//jim:
@@ -433,6 +555,18 @@ again:
 			if( ( spanStillActive != null ) && ( aboveFreshJobs == 0 ) )
 				throw new NoActiveJobsException();
 
+			if( ( htmlBody.Contains( "Jobsite" ) ) && ( jobCounter == 0 ) )
+				throw new NoActiveJobsException();
+			// 
+			if( ( address.Contains( "cityjobs@cityjobsmail.com" ) ) && ( jobCounter == 0 ) )
+				throw new NoActiveJobsException();
+
+			if( ( address.Contains( "lensa" ) ) && ( jobCounter == 0 ) )
+				throw new NoActiveJobsException();
+
+			if( ( address.Contains( "talent@angel.co" ) ) && ( htmlBody.Contains( "New job listings:" ) ) && ( jobCounter == 0 ) )
+				throw new NoActiveJobsException();
+
 
 
 			//if( spanFreshJobs != null )
@@ -449,7 +583,6 @@ again:
 			//
 		}
 
-		WebClient webClient = new WebClient();
 		private bool PreviouslySubmitted( HtmlNode link )
 		{
 again:
@@ -597,6 +730,27 @@ zzz:
 			this.Shutdown += new System.EventHandler( ThisAddIn_Shutdown );
 		}
 
+		public enum FileCategory
+		{
+			Role,
+			City,
+			OutGoingMessage
+		}
+
+		internal void EditFile( FileCategory fileCategory )
+		{
+			string path = @"C:\Users\Georg\OneDrive\OutlookHelper\";
+			if( fileCategory == FileCategory.Role )
+				path += "Roles.txt";
+			else if( fileCategory == FileCategory.City )
+				path += "Cities.txt";
+			else if( fileCategory == FileCategory.OutGoingMessage )
+				path += "OutGoingMessage.txt";
+
+			System.Diagnostics.Process.Start( path );
+			//
+		}
+
 		[Serializable]
 		private class NoActiveJobsException : Exception
 		{
@@ -619,4 +773,111 @@ zzz:
 
 		#endregion
 	}
+}
+
+
+namespace GGTSReservations.Services
+{
+	public class ReservationResponce
+	{
+		//[Key]
+		public int Id { get; set; }
+		public int ball_machine { get; set; }
+		public string booking_time { get; set; }
+		public string court_blocks { get; set; }
+		public string court_date { get; set; }
+		public int court_id { get; set; }
+		public string court_uid { get; set; }
+
+		public string court_name { get; set; }
+		public string court_sport { get; set; }
+		public string court_surface { get; set; }
+
+		public float court_length { get; set; }
+		public int court_number { get; set; }
+		public int court_range_id { get; set; }
+		public int court_status { get; set; }
+		public string end_time { get; set; }
+		public Errormap errormap { get; set; }
+		public int mode { get; set; }
+		public int number_of_players { get; set; }
+		public int online_booking { get; set; }
+		public string player_1_first_name { get; set; }
+		public int player_1_id { get; set; }
+		public string player_1_name { get; set; }
+		public string player_2_first_name { get; set; }
+		public int player_2_id { get; set; }
+		public string player_2_name { get; set; }
+		public string player_3_first_name { get; set; }
+		public int player_3_id { get; set; }
+		public string player_3_name { get; set; }
+		public string player_4_first_name { get; set; }
+		public int player_4_id { get; set; }
+		public string player_4_name { get; set; }
+		public string reservation_type { get; set; }
+		public string result { get; set; }
+		public string start_time { get; set; }
+		public Successmap successmap { get; set; }
+		public int view_days { get; set; }
+
+		// added
+		public string eventId { get; set; }
+		public bool Unavailable { get; set; }
+		//
+	}
+
+	public class Errormap
+	{
+		//private int count = 1;
+		//public int count { get; set; }
+
+		public string rule_0 { get; set; }
+		public string rule_13 { get; set; }
+		public string rule_16 { get; set; }
+		public string rule_5 { get; set; }
+		public string rule_12 { get; set; }
+		public string rule_3 { get; set; }
+		public string rule_2 { get; set; }
+
+		public int GetPropertiesCount()
+		{
+			int counter = 0;
+			foreach( System.Reflection.PropertyInfo property in this.GetType().GetProperties() )
+			{
+				if( property.Name.Equals( "rule_0" ) )
+					continue;
+
+				string value = (string)property.GetValue( this );
+				//Console.WriteLine( value.Length );
+				if( value != null )
+					counter++;
+
+			}
+			//goto gggg;
+			//Console.WriteLine( counter );
+
+			return counter;
+
+			//return this.GetType().GetProperties().Count();
+
+		}
+
+		//public int GetPropertiesCount()
+		//{
+		//    return count;
+
+		//}
+	}
+
+	public class Successmap
+	{
+		public string rule_0 { get; set; }
+		public string rule_1 { get; set; }
+		public string rule_12 { get; set; }
+		public string rule_2 { get; set; }
+		public string rule_3 { get; set; }
+		public string rule_6 { get; set; }
+		public string rule_9 { get; set; }
+	}
+
 }

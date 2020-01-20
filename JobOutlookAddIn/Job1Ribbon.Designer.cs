@@ -42,6 +42,10 @@
 			this.buttonConditionalEmail = this.Factory.CreateRibbonButton();
 			this.separator1 = this.Factory.CreateRibbonSeparator();
 			this.buttonReset = this.Factory.CreateRibbonButton();
+			this.separator3 = this.Factory.CreateRibbonSeparator();
+			this.buttonEditRoles = this.Factory.CreateRibbonButton();
+			this.buttonEditOutgoingMessage = this.Factory.CreateRibbonButton();
+			this.buttonEditCities = this.Factory.CreateRibbonButton();
 			this.tab1.SuspendLayout();
 			this.JobEmails.SuspendLayout();
 			this.group1.SuspendLayout();
@@ -66,6 +70,10 @@
 			this.group1.Items.Add(this.buttonConditionalEmail);
 			this.group1.Items.Add(this.separator1);
 			this.group1.Items.Add(this.buttonReset);
+			this.group1.Items.Add(this.separator3);
+			this.group1.Items.Add(this.buttonEditRoles);
+			this.group1.Items.Add(this.buttonEditCities);
+			this.group1.Items.Add(this.buttonEditOutgoingMessage);
 			this.group1.Label = "Jobs Email Group";
 			this.group1.Name = "group1";
 			// 
@@ -95,6 +103,28 @@
 			this.buttonReset.Name = "buttonReset";
 			this.buttonReset.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.buttonReset_Click);
 			// 
+			// separator3
+			// 
+			this.separator3.Name = "separator3";
+			// 
+			// buttonEditRoles
+			// 
+			this.buttonEditRoles.Label = "Edit Roles";
+			this.buttonEditRoles.Name = "buttonEditRoles";
+			this.buttonEditRoles.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.buttonEditRoles_Click);
+			// 
+			// buttonEditOutgoingMessage
+			// 
+			this.buttonEditOutgoingMessage.Label = "Edit OutgoingMessage";
+			this.buttonEditOutgoingMessage.Name = "buttonEditOutgoingMessage";
+			this.buttonEditOutgoingMessage.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.buttonEditOutgoingMessage_Click);
+			// 
+			// buttonEditCities
+			// 
+			this.buttonEditCities.Label = "Edit Cities";
+			this.buttonEditCities.Name = "buttonEditCities";
+			this.buttonEditCities.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.buttonEditCities_Click);
+			// 
 			// Job1Ribbon
 			// 
 			this.Name = "Job1Ribbon";
@@ -119,9 +149,13 @@
 		internal Microsoft.Office.Tools.Ribbon.RibbonGroup group1;
 		internal Microsoft.Office.Tools.Ribbon.RibbonButton buttonReset;
 		internal Microsoft.Office.Tools.Ribbon.RibbonButton buttonForceEmail;
+		internal Microsoft.Office.Tools.Ribbon.RibbonButton buttonEditRoles;
+		internal Microsoft.Office.Tools.Ribbon.RibbonSeparator separator3;
 		internal Microsoft.Office.Tools.Ribbon.RibbonSeparator separator2;
 		internal Microsoft.Office.Tools.Ribbon.RibbonButton buttonConditionalEmail;
 		internal Microsoft.Office.Tools.Ribbon.RibbonSeparator separator1;
+		internal Microsoft.Office.Tools.Ribbon.RibbonButton buttonEditCities;
+		internal Microsoft.Office.Tools.Ribbon.RibbonButton buttonEditOutgoingMessage;
 	}
 
 	partial class ThisRibbonCollection

@@ -8,7 +8,6 @@ namespace Utilities
 		Conditional,
 		Force,
 		Stop
-
 	}
 
 	/// <summary>

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Outlook = Microsoft.Office.Interop.Outlook;
 
 using Utilities;
 using System.Text.RegularExpressions;
@@ -32,6 +31,7 @@ namespace JobOutlookAddIn
 
 			string body = CreateResponseBody( mailItem.Subject.ToLower(), mailItem.Sender.Name, condition );
 
+			
 			if( body == null )
 				return;
 
@@ -50,109 +50,6 @@ namespace JobOutlookAddIn
 			//mailItem.HTMLBody = string.Format( "<font size='1' color='red'><div id='replysent' > Reply sent on: {0}</div><font><br>", System.DateTime.Now.ToShortDateString() ) + mailItem.HTMLBody;
 			//font-size:14px; font-family:Times New Roman;
 			mailItem.HTMLBody = string.Format( "<div id='replysent' style='color:darkblue; font-size:8px; font-family:Times New Roman;' > Reply sent on: {0}</div><br>", System.DateTime.Now.ToShortDateString() ) + mailItem.HTMLBody;
-
-
-#if true5555
-			string subject = mailItem.Subject.ToLower();
-			string senderName = mailItem.Sender.Name;
-			string senderAddress = mailItem.Sender.Address;
-
-
-			string[] array = senderName.Split( ' ' );
-			if( array.Length > 1 )
-				senderName = array[0];
-			else
-			{
-				array = senderName.Split( '.' );
-				if( array.Length > 1 )
-					senderName = array[0];
-			}
-
-			IList<Entity> relevantRoles = new List<Entity>();
-			IList<Entity> irrelevantRoles = new List<Entity>();
-			IList<Entity> veryIrrelevantRoles = new List<Entity>();
-
-			foreach( Entity entity in roles )
-			{
-				if( isMatched( subject, entity.Item.ToLower() ) )
-				//if (subject.Contains( entity.Item.ToLower() ) )
-				{
-					if( entity.Attrib == 0 )
-						veryIrrelevantRoles.Add( new Entity( entity.Item, entity.Attrib ) );
-					else if( entity.Attrib == 1 )
-						irrelevantRoles.Add( new Entity( entity.Item, entity.Attrib ) );
-					else if( entity.Attrib == 2 )
-						relevantRoles.Add( new Entity( entity.Item, entity.Attrib ) );
-					else
-						throw new Exception( "data error: " + entity.ToString() );
-
-				}
-
-
-			}
-
-			if( relevantRoles.Count > 0 && condition == SendCondition.Conditional )
-			{
-				//MarkAsProcessed
-				System.Windows.Forms.DialogResult result = System.Windows.Forms.MessageBox.Show( "RelevantRole (" + relevantRoles[0].Item + ") found." );
-				if( result == System.Windows.Forms.DialogResult.No )
-					return;
-				//
-			}
-
-			bool proceed = false;
-
-			if( condition == SendCondition.Conditional )
-			{
-				if( ( irrelevantRoles.Count > 0 ) || ( veryIrrelevantRoles.Count > 0 ) )
-					proceed = true;
-
-			}
-			else
-				proceed = true;
-
-
-			if( proceed )
-			{
-				string body = "<div style='font-size:14px; font-family:Times New Roman;'>" + this.outGoingMessage + "</div>";
-
-				System.Globalization.TextInfo myTI = new System.Globalization.CultureInfo( "en-US", false ).TextInfo;
-				body = body.Replace( "<person>", myTI.ToTitleCase( senderName ) );
-
-
-				//if( ( irrelevantRoles.Count > 0 ) || ( veryIrrelevantRoles.Count > 0 ) )
-				{
-					if( ( veryIrrelevantRoles.Count > 0 ) )
-						body = body.Replace( "<veryirrelevant>", "But really...." + veryIrrelevantRoles[0].Item + "??" );
-					else
-						body = body.Replace( "<veryirrelevant>", "" );
-
-					if( irrelevantRoles.Count > 0 )
-						body = body.Replace( "<role>", "(" + irrelevantRoles[0].Item + "s)" );
-					else if( veryIrrelevantRoles.Count > 0 )
-						body = body.Replace( "<role>", "(" + veryIrrelevantRoles[0].Item + "s)" );
-					else
-						body = body.Replace( "<role>", "" );
-
-					//body = string.Format( "<font size='1' color='red'><div id='gslprocesed' > Processed on: {0} Found {1}</div><font>", System.DateTime.Now.ToShortDateString() ) + body;
-					//body = string.Format( "<font size='1' color='red'><div id='replysent' > Reply sent on: {0}</div><font><br>", System.DateTime.Now.ToShortDateString() ) + body;
-
-					Microsoft.Office.Interop.Outlook.MailItem reply = mailItem.ReplyAll();
-					reply.HTMLBody = body + reply.HTMLBody;
-
-					reply.Attachments.Add( this.attachmentFileName );
-
-					if( condition == SendCondition.Conditional )
-						reply.Display();
-					else
-						reply.Send();
-
-					mailItem.HTMLBody = string.Format( "<font size='1' color='red'><div id='replysent' > Reply sent on: {0}</div><font><br>", System.DateTime.Now.ToShortDateString() ) + mailItem.HTMLBody;
-					//
-				}
-				//
-			} 
-#endif
 
 		}
 
@@ -208,6 +105,27 @@ namespace JobOutlookAddIn
 				array = senderName.Split( '.' );
 				if( array.Length > 1 )
 					senderName = array[0];
+
+				else
+				{
+					array = senderName.Split( '-' );
+					if( array.Length > 1 )
+						senderName = array[0];
+					else
+					{
+						array = senderName.Split( '_' );
+						if( array.Length > 1 )
+							senderName = array[0];
+						else
+						{
+							array = senderName.Split( '@' );
+							if( array.Length > 1 )
+								senderName = array[0];
+						}
+						//
+					}
+				}
+				//
 			}
 
 			IList<Entity> relevantRoles = new List<Entity>();
@@ -225,6 +143,9 @@ namespace JobOutlookAddIn
 						irrelevantRoles.Add( new Entity( entity.Item, entity.Attrib ) );
 					else if( entity.Attrib == 2 )
 						relevantRoles.Add( new Entity( entity.Item, entity.Attrib ) );
+					else if( entity.Attrib == 4 )
+					{
+					}
 					else
 						throw new Exception( "data error: " + entity.ToString() );
 					//
@@ -233,6 +154,7 @@ namespace JobOutlookAddIn
 			}
 
 			bool proceed = false;
+
 
 			if( relevantRoles.Count > 0 && condition == SendCondition.Conditional )
 			{
@@ -245,6 +167,7 @@ namespace JobOutlookAddIn
 			}
 			else
 			{
+				//return null;
 				if( condition == SendCondition.Conditional )
 				{
 					if( ( irrelevantRoles.Count > 0 ) || ( veryIrrelevantRoles.Count > 0 ) )
@@ -254,6 +177,8 @@ namespace JobOutlookAddIn
 						DialogResult result = System.Windows.Forms.MessageBox.Show( "Did not find an IrrelevantRole." + Environment.NewLine + Environment.NewLine + "Proceed?", "Proceed?", MessageBoxButtons.YesNo );
 						if( result == System.Windows.Forms.DialogResult.No )
 							return null;
+
+						proceed = true;
 						//
 					}
 					//

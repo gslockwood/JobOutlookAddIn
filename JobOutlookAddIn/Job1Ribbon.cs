@@ -24,5 +24,21 @@ namespace JobOutlookAddIn
 			Globals.ThisAddIn.ConditionalEmail();
 
 		}
+
+		private void buttonEditRoles_Click( object sender, RibbonControlEventArgs e )
+		{
+			Globals.ThisAddIn.EditFile( ThisAddIn.FileCategory.Role );
+		}
+		private void buttonEditCities_Click( object sender, RibbonControlEventArgs e )
+		{
+			Globals.ThisAddIn.EditFile( ThisAddIn.FileCategory.City );
+
+		}
+
+		private void buttonEditOutgoingMessage_Click( object sender, RibbonControlEventArgs e )
+		{
+			Globals.ThisAddIn.EditFile( ThisAddIn.FileCategory.OutGoingMessage );
+
+		}
 	}
 }
