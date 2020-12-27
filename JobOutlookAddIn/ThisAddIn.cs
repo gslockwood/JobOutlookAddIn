@@ -15,7 +15,7 @@ namespace JobOutlookAddIn
 {
     public partial class ThisAddIn
     {
-        public static string version = " v1.4";
+        public static string version = " v1.41";
         //public static Outlook.Application app;
 
         WebClient webClient = new WebClient();

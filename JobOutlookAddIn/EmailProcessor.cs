@@ -116,6 +116,19 @@ namespace EmailProcessor
                     return null;
             }
 
+            //This email was sent to greenflashtennis@gmail.com
+            string footer = "An email address was not found";
+            //<strong>Spot Name:</strong> Lafayette Tennis Court #2</div>
+            pattern = "(This email was sent to (.*))";
+            regex = new Regex( pattern );
+            match = regex.Match( content );
+            if( ( match.Success ) && ( match.Groups.Count > 1 ) )
+            {
+                footer = match.Groups[1].Value;
+                //footer = footer.TrimEnd( '\r' );
+            }
+
+            footer = "<div><div><div>" + footer.TrimEnd( '\r' ) + "</div></div></div>";
 
             string location = "Location not found";
             //<strong>Spot Name:</strong> Lafayette Tennis Court #2</div>
@@ -169,6 +182,8 @@ namespace EmailProcessor
                 }
                 //
             }
+
+            body += footer;
 
             newAppointment.Subject = location + reservationsNumber;
 
