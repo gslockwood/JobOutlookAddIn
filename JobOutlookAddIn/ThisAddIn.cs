@@ -15,7 +15,7 @@ namespace JobOutlookAddIn
 {
     public partial class ThisAddIn
     {
-        public static string version = " v1.41";
+        public static string version = " v1.43";
         //public static Outlook.Application app;
 
         WebClient webClient = new WebClient();
@@ -113,6 +113,8 @@ namespace JobOutlookAddIn
             if( senderEmailAddress == "support@spotery.com" )
             {
                 emailProcessor = new EmailProcessorSportery( this.Application );
+                /*
+                emailProcessor.ProcessMail( mailItem );
 
                 if( mailItem.Subject.Contains( "updated" ) )
                 {
@@ -133,9 +135,16 @@ namespace JobOutlookAddIn
                     }
 
                 }
+                */
                 //
             }
+            else if( senderEmailAddress == "reservationsspecialtennis@gmail.com" )
+                emailProcessor = new EmailProcessorGGTS( this.Application );
 
+            if( emailProcessor != null )
+                emailProcessor.ProcessMail( mailItem );
+
+            /*
             else if( senderEmailAddress == "reservationsspecialtennis@gmail.com" )
             {
                 try
@@ -190,9 +199,8 @@ namespace JobOutlookAddIn
                         newAppointment.Save();
                         //
                     }
-                    /*
-					 {"ball_machine": 1,"booking_time": "2018-07-31 08:23:25","court_blocks": "[\"a_034_09_00_2018-08-02_8\", \"a_034_09_30_2018-08-02_9\"]","court_date": "2018-08-02","court_id": 1043910,"court_length": 1.000000,"court_name": "Tennis 6 Ball Machine","court_number": 34,"court_range_id": 4,"court_sport": "Tennis","court_status": 0,"court_surface": "Gateway","court_uid": "3a2b9004-cbdc-45c7-b7f7-fe32cae12137","end_time": "10:00:00","errormap": {"rule_0": "fail"},"mode": 30,"number_of_players": 1,"online_booking": 1,"player_1_first_name": "George","player_1_id": 158845,"player_1_name": "Lockwood","player_2_first_name": "","player_2_id": 0,"player_2_name": "","player_3_first_name": "","player_3_id": 0,"player_3_name": "","player_4_first_name": "","player_4_id": 0,"player_4_name": "","reservation_type": "Open","result": "OK","start_time": "09:00:00","successmap": {"rule_0": "success","rule_1": "Allowed to view courts","rule_12": "Booking Allowed (Access)","rule_13": "has not exceeded 1.5 hr. Currently have 0.000000 hr.1.000000","rule_16": "No side by side","rule_2": "Booking time reached","rule_3": "Booking in future","rule_5": "No back to back booking","rule_6": "No back to back booking (2nd Player)","rule_9": "Tennis 6 Ball Machine can be booked online"},"view_days": 7}
-					 */
+					 //{"ball_machine": 1,"booking_time": "2018-07-31 08:23:25","court_blocks": "[\"a_034_09_00_2018-08-02_8\", \"a_034_09_30_2018-08-02_9\"]","court_date": "2018-08-02","court_id": 1043910,"court_length": 1.000000,"court_name": "Tennis 6 Ball Machine","court_number": 34,"court_range_id": 4,"court_sport": "Tennis","court_status": 0,"court_surface": "Gateway","court_uid": "3a2b9004-cbdc-45c7-b7f7-fe32cae12137","end_time": "10:00:00","errormap": {"rule_0": "fail"},"mode": 30,"number_of_players": 1,"online_booking": 1,"player_1_first_name": "George","player_1_id": 158845,"player_1_name": "Lockwood","player_2_first_name": "","player_2_id": 0,"player_2_name": "","player_3_first_name": "","player_3_id": 0,"player_3_name": "","player_4_first_name": "","player_4_id": 0,"player_4_name": "","reservation_type": "Open","result": "OK","start_time": "09:00:00","successmap": {"rule_0": "success","rule_1": "Allowed to view courts","rule_12": "Booking Allowed (Access)","rule_13": "has not exceeded 1.5 hr. Currently have 0.000000 hr.1.000000","rule_16": "No side by side","rule_2": "Booking time reached","rule_3": "Booking in future","rule_5": "No back to back booking","rule_6": "No back to back booking (2nd Player)","rule_9": "Tennis 6 Ball Machine can be booked online"},"view_days": 7}
+
                 }
                 catch( Exception ex )
                 {
@@ -200,6 +208,7 @@ namespace JobOutlookAddIn
                 }
                 //
             }
+            */
             //
         }
 

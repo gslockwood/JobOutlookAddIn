@@ -15,6 +15,7 @@ namespace EmailProcessor
         protected Microsoft.Office.Interop.Outlook.Application app;
         protected string ReservationUserPropertyTitle = "baseReservation";
         protected string ReservationUserPropertyValue = "Reservation:";
+        protected string senderEmailAddress;
 
         public EmailProcessor( Microsoft.Office.Interop.Outlook.Application app )
         {
@@ -65,15 +66,43 @@ namespace EmailProcessor
             //
         }
 
+        public virtual void ProcessMail( MailItem mailItem )
+        {
+            throw new NotImplementedException();
+        }
+        //
     }
 
     public class EmailProcessorSportery : EmailProcessor, ICreateCalendarItem
     {
-        //private Microsoft.Office.Interop.Word.Application workApp;
         public EmailProcessorSportery( Microsoft.Office.Interop.Outlook.Application app ) : base( app )
         {
             ReservationUserPropertyTitle = "SpoteryReservation";
-            //workApp = new Microsoft.Office.Interop.Word.Application();
+        }
+
+        public override void ProcessMail( MailItem mailItem )
+        {
+            senderEmailAddress = mailItem.SenderEmailAddress;
+            if( mailItem.Subject.Contains( "updated" ) )
+            {
+                if( mailItem.Body.Contains( "Canceled by User" ) )
+                {
+                    DeleteCalendarItem( mailItem.Body );
+                }
+
+            }
+            else if( mailItem.Subject.Contains( "confirmed" ) )
+            {
+                AppointmentItem newAppointment = (AppointmentItem)CreateCalendarItem( mailItem.Body );
+
+                if( newAppointment != null )
+                {
+                    //newAppointment.Display();
+                    newAppointment.Save();
+                }
+
+            }
+            //
         }
 
         public override void DeleteCalendarItem( string content )
@@ -94,10 +123,11 @@ namespace EmailProcessor
                     itemDelete.Delete();
                 }
                 //
-            }            
+            }
 
         }
 
+        bool testing = false;//false true
         public override object CreateCalendarItem( string content )
         {
         //workApp = new Microsoft.Office.Interop.Word.Application();
@@ -112,10 +142,12 @@ namespace EmailProcessor
                 reservationsNumber = " #" + match.Groups[1].Value;
                 //newAppointment.UserProperties
                 Items appts = GetAppointmentsByReservationNumber( reservationsNumber );
-                if( ( appts != null ) && ( appts.Count > 0 ) )
-                    return null;
+                if( !testing )
+                    if( ( appts != null ) && ( appts.Count > 0 ) )
+                        return null;
             }
 
+            /*
             //This email was sent to greenflashtennis@gmail.com
             string footer = "An email address was not found";
             //<strong>Spot Name:</strong> Lafayette Tennis Court #2</div>
@@ -127,8 +159,10 @@ namespace EmailProcessor
                 footer = match.Groups[1].Value;
                 //footer = footer.TrimEnd( '\r' );
             }
+            */
 
-            footer = "<div><div><div>" + footer.TrimEnd( '\r' ) + "</div></div></div>";
+            //footer = "<div><div><div>" + footer.TrimEnd( '\r' ) + "</div></div></div>";          
+            string footer = "<div><div><div>" + this.senderEmailAddress + "</div></div></div>";
 
             string location = "Location not found";
             //<strong>Spot Name:</strong> Lafayette Tennis Court #2</div>
@@ -163,6 +197,7 @@ namespace EmailProcessor
 
             AppointmentItem newAppointment = (AppointmentItem)app.CreateItem( OlItemType.olAppointmentItem );
 
+
             pattern = "<strong>Activity Date:</strong> (.*)</div>";
             regex = new Regex( pattern );
             match = regex.Match( content );
@@ -174,7 +209,6 @@ namespace EmailProcessor
                 {
                     newAppointment.Start = DateTime.Parse( array[0] );
                     newAppointment.End = DateTime.Parse( newAppointment.Start.ToShortDateString() + " " + array[1] );
-
                 }
                 catch( System.Exception ex )
                 {
@@ -185,7 +219,7 @@ namespace EmailProcessor
 
             body += footer;
 
-            newAppointment.Subject = location + reservationsNumber;
+            newAppointment.Subject = string.Format( "{0}{1} ({2} minutes)", location, reservationsNumber, newAppointment.Duration );
 
             HTML2RTFConverter html2RTFConverter = new HTML2RTFConverter();
             string newTemp = html2RTFConverter.Convert( body );
@@ -210,9 +244,21 @@ namespace EmailProcessor
         {
             ReservationUserPropertyTitle = "GGTSReservation";
         }
+
         public override object CreateCalendarItem( string content )
         {
             return base.CreateCalendarItem( content );
         }
+
+        public override void DeleteCalendarItem( string content )
+        {
+            base.DeleteCalendarItem( content );
+        }
+
+        public override void ProcessMail( MailItem mailItem )
+        {
+            base.ProcessMail( mailItem );
+        }
+
     }
 }
