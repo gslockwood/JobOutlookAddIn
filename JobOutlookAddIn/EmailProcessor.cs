@@ -109,7 +109,7 @@ namespace EmailProcessor
         {
             string reservationsNumber = "ReservationsNumber not found";
             //<div><strong>Reservation #:</strong> 1322312<br>
-            string pattern = "<strong>Reservation #:</strong> (.*)<br>";
+            string pattern = "<strong>Reservation #:</strong> (\\d+)<br>";
             Regex regex = new Regex( pattern );
             Match match = regex.Match( content );
             if( ( match.Success ) && ( match.Groups.Count > 1 ) )
@@ -118,10 +118,23 @@ namespace EmailProcessor
 
                 Items items = GetAppointmentsByReservationNumber( reservationsNumber );
                 if( ( items != null ) && ( items.Count > 0 ) )
-                {
-                    AppointmentItem itemDelete = items.GetFirst();
-                    itemDelete.Delete();
-                }
+                    items.GetFirst().Delete();
+                
+                return;
+                //
+            }
+
+            pattern = "(Reservation #: (\\d+))";
+            regex = new Regex( pattern );
+            match = regex.Match( content );
+            if( ( match.Success ) && ( match.Groups.Count > 1 ) )
+            {
+                reservationsNumber = " #" + match.Groups[2].Value;
+                Items items = GetAppointmentsByReservationNumber( reservationsNumber );
+                if( ( items != null ) && ( items.Count > 0 ) )
+                    items.GetFirst().Delete();
+
+                return;
                 //
             }
 
